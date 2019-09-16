@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<link rel="stylesheet" href="/css/reset.css">
+		<link rel="stylesheet" href="/css/window.css">
+
+		<style>
+			body{
+				overflow: hidden;
+				background-color: black;
+			}
+
+			canvas{
+				image-rendering: pixelated;
+			}
+		</style>
+	</head>
+	<body>
+		<div id="titlebar-container">
+			<div id="window-icon"></div>
+
+			<div id="window-controls">
+				<ul>
+					<li><a href="#" title="Minimize" id="window-controls-minimize"></a></li>
+					<li><a href="#" title="Maximize" id="window-controls-maximize"></a></li>
+					<li><a href="#" title="Close" id="window-controls-close"></a></li>
+				</ul>
+			</div>
+
+			<div style="width: 100%; text-align: center;">
+				<div id="window-title">pongl</div>
+			</div>
+		</div>
+		<script type="text/javascript" src="/src/window.js"></script>
+
+		<script type="module" src="/src/main.js"></script>
+	</body>
+</html>

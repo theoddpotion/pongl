@@ -1,0 +1,15 @@
+{
+	"name": "pongl",
+	"main": "index.html",
+	"window": {
+		"icon": "/res/icon.png",
+		"width": 870, //856
+		"height": 513, //499
+		"min_width": 870,
+		"min_height": 513,
+		"position": "center",
+		"resizable": false,
+		"frame": false,
+		"toolbar": false
+	}
+}
