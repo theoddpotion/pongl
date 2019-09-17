@@ -1,3 +1,5 @@
+import Keyboard from './keyboard.js';
+
 window.addEventListener('load', function(){
 	main();
 });
@@ -34,6 +36,7 @@ function main(){
 		}
 	}
 
+	//setup some rendering stuff
 	gl.clearColor(0.0, 0.0, 0.0, 1.0);
 	gl.clearDepth(1.0);
 	gl.enable(gl.DEPTH_TEST);
@@ -49,7 +52,6 @@ function main(){
 	let colorAttributeLocation = gl.getAttribLocation(program, 'a_color');
 
 	//Store uniform locations
-
 	let projectionMatrixLocation = gl.getUniformLocation(program, 'u_projectionMatrix');
 	let viewMatrixLocation = gl.getUniformLocation(program, 'u_viewMatrix');
 	let modelViewMatrixLocation = gl.getUniformLocation(program, 'u_modelViewMatrix');
@@ -58,6 +60,7 @@ function main(){
 	let vao = gl.createVertexArray();
 	gl.bindVertexArray(vao);
 
+	//Setup geometry data with vao
 	//Define geometry data
 	let positions = [
 		//Column Front
@@ -214,7 +217,7 @@ function main(){
 	}
 
 
-
+	//Setup color data with vao
 	let colors = [
 		//Column Front
 		255, 0, 0,
@@ -367,36 +370,62 @@ function main(){
 		gl.vertexAttribPointer(colorAttributeLocation, size, type, normalize, stride, offset);
 	}
 
-
+	//Camera transform
 	let cameraTranslation = [0.0, 0.0, 10.0];
 	let cameraRotationDeg = [0.0, 0.0, 0.0];
 
+	//model 'F' transform
 	let translation = [0.0, 0.0, 0.0];
 	let rotationDeg = [0.0, 0.0, 0.0];
 	let scale = [1.0, 1.0, 1.0];
 
+	//Begin render loop
 	requestAnimationFrame(render);
 
 	let timer = 0;
 	function render(){
-		//resize(gl);
 
+		//Input stuffs
+		if(Keyboard.getKey(Keyboard.KeyCode.LEFT)){
+			cameraRotationDeg[1] += 5.0;
+		}else if(Keyboard.getKey(Keyboard.KeyCode.RIGHT)){
+			cameraRotationDeg[1] -= 5.0;
+		}
+
+		if(Keyboard.getKey(Keyboard.KeyCode.UP)){
+			cameraRotationDeg[0] += 5.0;
+		}else if(Keyboard.getKey(Keyboard.KeyCode.DOWN)){
+			cameraRotationDeg[0] -= 5.0;
+		}
+
+		if(Keyboard.getKey(Keyboard.KeyCode.W)){
+			let deltaX = -Math.sin(DegToRad(cameraRotationDeg[1]));
+			let deltaZ = -Math.cos(DegToRad(cameraRotationDeg[1]));
+
+			cameraTranslation[0] += deltaX * 0.5;
+			cameraTranslation[2] += deltaZ * 0.5;
+		}else if(Keyboard.getKey(Keyboard.KeyCode.S)){
+			let deltaX = -Math.sin(DegToRad(cameraRotationDeg[1]));
+			let deltaZ = -Math.cos(DegToRad(cameraRotationDeg[1]));
+
+			cameraTranslation[0] -= deltaX * 0.5;
+			cameraTranslation[2] -= deltaZ * 0.5;
+		}
+
+		//Temp animation stuff
 		timer += 0.01;
 		rotationDeg[0] = Math.sin(timer*2) * 45.0;
-		rotationDeg[1] += 0.5;
+		rotationDeg[1] = Math.sin(timer) * 45.0;
+		//cameraRotationDeg[0] = Math.sin(timer*2) * 5;
 
-		cameraRotationDeg[1] = Math.sin(timer) * 30;
-
+		//Begin render by clearing canvas
 		gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
 		gl.useProgram(program);
 		gl.bindVertexArray(vao);
 
 		//set uniforms
-
-		//MVP = projection * view * model
-
-		const fov = DegToRad(45);
+		const fov = DegToRad(90);
 		const aspect = gl.canvas.width / gl.canvas.height;
 		const zNear = 0.1;
 		const zFar = 100.0;
@@ -414,9 +443,6 @@ function main(){
 		viewMatrix = glMatrix.mat4.invert(viewMatrix, cameraMatrix);
 		gl.uniformMatrix4fv(viewMatrixLocation, false, viewMatrix);
 
-		// let viewProjectionMatrix = glMatrix.mat4.create();
-		// viewProjectionMatrix = glMatrix.mat4.multiply(viewProjectionMatrix, projectionMatrix, viewMatrix);
-
 		let modelViewMatrix = glMatrix.mat4.create();
 		modelViewMatrix = glMatrix.mat4.translate(modelViewMatrix, modelViewMatrix, [translation[0], translation[1], translation[2]]);
 		modelViewMatrix = glMatrix.mat4.rotateX(modelViewMatrix, modelViewMatrix, DegToRad(rotationDeg[0]));
@@ -424,10 +450,8 @@ function main(){
 		modelViewMatrix = glMatrix.mat4.rotateZ(modelViewMatrix, modelViewMatrix, DegToRad(rotationDeg[2]));
 		modelViewMatrix = glMatrix.mat4.scale(modelViewMatrix, modelViewMatrix, [scale[0], scale[1], scale[2]]);
 		gl.uniformMatrix4fv(modelViewMatrixLocation, false, modelViewMatrix);
-
-		//gl.uniform4fv(colorAttributeLocation, [1.0, 1.0, 1.0, 1.0]);
 		
-
+		//Draw everything
 		let primitiveType = gl.TRIANGLES;
 		let offset = 0;
 		let count = 6 * 17;
@@ -487,7 +511,6 @@ function createProgramFromSource(gl, vertShaderSource, fragShaderSource){
 //Shader sources
 const vertShaderSourceData = `#version 300 es
 
-	
 	uniform mat4 u_projectionMatrix;
 	uniform mat4 u_viewMatrix;
 	uniform mat4 u_modelViewMatrix;
@@ -517,259 +540,6 @@ const fragShaderSourceData = `#version 300 es
 	}
 `;
 
-// let Mat3 = {
-// 	projection: function(width, height){
-// 		return [
-// 			2.0 / width, 0.0, 0.0,
-// 			0.0, -2.0 / height, 0.0,
-// 			-1.0, 1.0, 1.0
-// 		];
-// 	},
-
-// 	identity: function(){
-// 		return [
-// 			1, 0, 0,
-// 			0, 1, 0,
-// 			0, 0, 1
-// 		];
-// 	},
-
-// 	translate: function(m, tx, ty){
-// 		return Mat3.multiply(m, Mat3.translation(tx, ty));
-// 	},
-
-// 	rotate: function(m, angleRad){
-// 		return Mat3.multiply(m, Mat3.rotation(angleRad));
-// 	},
-
-// 	scale: function(m, sx, sy){
-// 		return Mat3.multiply(m, Mat3.scaling(sx, sy));
-// 	},
-
-// 	multiply: function(a, b){
-// 		var a00 = a[0 * 3 + 0];
-// 		var a01 = a[0 * 3 + 1];
-// 		var a02 = a[0 * 3 + 2];
-
-// 		var a10 = a[1 * 3 + 0];
-// 		var a11 = a[1 * 3 + 1];
-// 		var a12 = a[1 * 3 + 2];
-
-// 		var a20 = a[2 * 3 + 0];
-// 		var a21 = a[2 * 3 + 1];
-// 		var a22 = a[2 * 3 + 2];
-
-// 		var b00 = b[0 * 3 + 0];
-// 		var b01 = b[0 * 3 + 1];
-// 		var b02 = b[0 * 3 + 2];
-
-// 		var b10 = b[1 * 3 + 0];
-// 		var b11 = b[1 * 3 + 1];
-// 		var b12 = b[1 * 3 + 2];
-
-// 		var b20 = b[2 * 3 + 0];
-// 		var b21 = b[2 * 3 + 1];
-// 		var b22 = b[2 * 3 + 2];
-
-// 		return [
-// 			b00 * a00 + b01 * a10 + b02 * a20,
-// 			b00 * a01 + b01 * a11 + b02 * a21,
-// 			b00 * a02 + b01 * a12 + b02 * a22,
-// 			b10 * a00 + b11 * a10 + b12 * a20,
-// 			b10 * a01 + b11 * a11 + b12 * a21,
-// 			b10 * a02 + b11 * a12 + b12 * a22,
-// 			b20 * a00 + b21 * a10 + b22 * a20,
-// 			b20 * a01 + b21 * a11 + b22 * a21,
-// 			b20 * a02 + b21 * a12 + b22 * a22,
-// 		];
-// 	},
-
-// 	translation: function(tx, ty){
-// 		return [
-// 			1, 0, 0,
-// 			0, 1, 0,
-// 			tx, ty, 1
-// 		];
-// 	},
-
-// 	rotation: function(angleRad){
-// 		var c = Math.cos(angleRad);
-// 		var s = Math.sin(angleRad);
-
-// 		return [
-// 			c, -s, 0,
-// 			s, c, 0,
-// 			0, 0, 1
-// 		];
-// 	}, 
-
-// 	scaling: function(sx, sy){
-// 		return [
-// 			sx, 0, 0,
-// 			0, sy, 0,
-// 			0, 0, 1
-// 		];
-// 	}
-// };
-
-// let Mat4 = {
-// 	perspective: function(out, fovY, aspect, near, far){
-// 		let f = 1.0 / Math.tan(fovY / 2.0), nf;
-
-// 		out = [
-// 			f / aspect, 0.0, 0.0, 0.0,
-// 			0.0, f, 0.0, 0.0,
-// 			0.0, 0.0, -1.0, -1.0,
-// 			0.0, 0.0, -2.0 * near, 0.0
-// 		];
-
-// 		if(far != null && far !== Infinity){
-// 			nf = 1.0 / (near - far);
-// 			out[10] = (far + near) * nf;
-// 			out[14] = (2.0 * far * near) * nf;
-// 		}
-
-// 		return out;
-// 	},
-
-// 	identity: function(){
-// 		return [
-// 			1, 0, 0, 0,
-// 			0, 1, 0, 0,
-// 			0, 0, 1, 0,
-// 			0, 0, 0, 1
-// 		];
-// 	},
-
-// 	translate: function(m, tx, ty, tz){
-// 		return Mat4.multiply(m, Mat4.translation(tx, ty, tz));
-// 	},
-
-// 	xRotate: function(m, angleRad){
-// 		return Mat4.multiply(m, Mat4.xRotation(angleRad));
-// 	},
-
-// 	yRotate: function(m, angleRad){
-// 		return Mat4.multiply(m, Mat4.yRotation(angleRad));
-// 	},
-
-// 	zRotate: function(m, angleRad){
-// 		return Mat4.multiply(m, Mat4.zRotation(angleRad));
-// 	},
-
-// 	scale: function(m, sx, sy, sz){
-// 		return Mat4.multiply(m, Mat4.scaling(sx, sy, sz));
-// 	},
-
-// 	multiply: function(a, b){
-// 		var a00 = a[0 * 4 + 0];
-// 		var a01 = a[0 * 4 + 1];
-// 		var a02 = a[0 * 4 + 2];
-// 		var a03 = a[0 * 4 + 3];
-// 		var a10 = a[1 * 4 + 0];
-// 		var a11 = a[1 * 4 + 1];
-// 		var a12 = a[1 * 4 + 2];
-// 		var a13 = a[1 * 4 + 3];
-// 		var a20 = a[2 * 4 + 0];
-// 		var a21 = a[2 * 4 + 1];
-// 		var a22 = a[2 * 4 + 2];
-// 		var a23 = a[2 * 4 + 3];
-// 		var a30 = a[3 * 4 + 0];
-// 		var a31 = a[3 * 4 + 1];
-// 		var a32 = a[3 * 4 + 2];
-// 		var a33 = a[3 * 4 + 3];
-// 		var b00 = b[0 * 4 + 0];
-// 		var b01 = b[0 * 4 + 1];
-// 		var b02 = b[0 * 4 + 2];
-// 		var b03 = b[0 * 4 + 3];
-// 		var b10 = b[1 * 4 + 0];
-// 		var b11 = b[1 * 4 + 1];
-// 		var b12 = b[1 * 4 + 2];
-// 		var b13 = b[1 * 4 + 3];
-// 		var b20 = b[2 * 4 + 0];
-// 		var b21 = b[2 * 4 + 1];
-// 		var b22 = b[2 * 4 + 2];
-// 		var b23 = b[2 * 4 + 3];
-// 		var b30 = b[3 * 4 + 0];
-// 		var b31 = b[3 * 4 + 1];
-// 		var b32 = b[3 * 4 + 2];
-// 		var b33 = b[3 * 4 + 3];
-
-// 		return [
-// 			b00 * a00 + b01 * a10 + b02 * a20 + b03 * a30,
-// 			b00 * a01 + b01 * a11 + b02 * a21 + b03 * a31,
-// 			b00 * a02 + b01 * a12 + b02 * a22 + b03 * a32,
-// 			b00 * a03 + b01 * a13 + b02 * a23 + b03 * a33,
-// 			b10 * a00 + b11 * a10 + b12 * a20 + b13 * a30,
-// 			b10 * a01 + b11 * a11 + b12 * a21 + b13 * a31,
-// 			b10 * a02 + b11 * a12 + b12 * a22 + b13 * a32,
-// 			b10 * a03 + b11 * a13 + b12 * a23 + b13 * a33,
-// 			b20 * a00 + b21 * a10 + b22 * a20 + b23 * a30,
-// 			b20 * a01 + b21 * a11 + b22 * a21 + b23 * a31,
-// 			b20 * a02 + b21 * a12 + b22 * a22 + b23 * a32,
-// 			b20 * a03 + b21 * a13 + b22 * a23 + b23 * a33,
-// 			b30 * a00 + b31 * a10 + b32 * a20 + b33 * a30,
-// 			b30 * a01 + b31 * a11 + b32 * a21 + b33 * a31,
-// 			b30 * a02 + b31 * a12 + b32 * a22 + b33 * a32,
-// 			b30 * a03 + b31 * a13 + b32 * a23 + b33 * a33,
-// 		];
-// 	},
-
-// 	translation: function(tx, ty, tz){
-// 		return [
-// 			1.0, 0.0, 0.0, 0.0,
-// 			0.0, 1.0, 0.0, 0.0,
-// 			0.0, 0.0, 1.0, 0.0,
-// 			tx, ty, tz, 1.0
-// 		];
-// 	},
-
-// 	xRotation: function(angleRad){
-// 		var c = Math.cos(angleRad);
-// 		var s = Math.sin(angleRad);
-
-// 		return [
-// 			1.0, 0.0, 0.0, 0.0,
-// 			0.0, c, s, 0.0,
-// 			0.0, -s, c, 0.0,
-// 			0.0, 0.0, 0.0, 1.0
-// 		];
-// 	},
-
-// 	yRotation: function(angleRad){
-// 		var c = Math.cos(angleRad);
-// 		var s = Math.sin(angleRad);
-
-// 		return [
-// 			c, 0.0, -s, 0.0,
-// 			0.0, 1.0, 0.0, 0.0,
-// 			s, 0.0, c, 0.0,
-// 			0.0, 0.0, 0.0, 1.0
-// 		];
-// 	},
-
-// 	zRotation: function(angleRad){
-// 		var c = Math.cos(angleRad);
-// 		var s = Math.sin(angleRad);
-
-// 		return [
-// 			c, s, 0.0, 0.0,
-// 			-s, c, 0.0, 0.0,
-// 			0.0, 0.0, 1.0, 0.0,
-// 			0.0, 0.0, 0.0, 1.0
-// 		];
-// 	},
-
-// 	scaling: function(sx, sy, sz){
-// 		return [
-// 			sx, 0.0, 0.0, 0.0,
-// 			0.0, sy, 0.0, 0.0,
-// 			0.0, 0.0, sz, 0.0,
-// 			0.0, 0.0, 0.0, 1.0
-// 		];
-// 	}
-// };
-
 function DegToRad(deg){
 	return deg * (Math.PI / 180.0);
 }
@@ -777,9 +547,6 @@ function DegToRad(deg){
 function RadToDeg(rad){
 	return rad * (180.0 / Math.PI);
 }
-
-
-
 
 //'F' vertex positions
 // let positions = [
