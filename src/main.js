@@ -37,29 +37,14 @@ function main(){
 	}
 
 	//setup some rendering stuff
-	gl.clearColor(0.0, 0.0, 0.0, 1.0);
+	gl.clearColor(34/255, 46/255, 54/255, 1.0);
 	gl.clearDepth(1.0);
 	gl.enable(gl.DEPTH_TEST);
 	gl.depthFunc(gl.LEQUAL);
 
 	gl.enable(gl.CULL_FACE);
 
-	//Load shader program
-	let program = createProgramFromSource(gl, vertShaderSourceData, fragShaderSourceData);
-
-	//Store attribute locations
-	let positionAttributeLocation = gl.getAttribLocation(program, 'a_position');
-	let colorAttributeLocation = gl.getAttribLocation(program, 'a_color');
-
-	//Store uniform locations
-	let projectionMatrixLocation = gl.getUniformLocation(program, 'u_projectionMatrix');
-	let viewMatrixLocation = gl.getUniformLocation(program, 'u_viewMatrix');
-	let modelMatrixLocation = gl.getUniformLocation(program, 'u_modelMatrix');
-
-
-	let vao = gl.createVertexArray();
-	gl.bindVertexArray(vao);
-
+	//Buffer stuff
 	//Setup geometry data with vao
 	let positions = [
 		//Top
@@ -79,7 +64,74 @@ function main(){
 		0.5, 0.5, -0.5,
 		0.5, -0.5, -0.5,
 		-0.5, -0.5, -0.5,
+
+		//Left
+		-0.5, 0.5, 0.5,
+		-0.5, 0.5, -0.5,
+		-0.5, -0.5, -0.5,
+		-0.5, -0.5, 0.5,
+
+		//Right
+		0.5, 0.5, -0.5,
+		0.5, 0.5, 0.5,
+		0.5, -0.5, 0.5,
+		0.5, -0.5, -0.5
 	];
+
+	//Setup color data with vao
+	let colors = [
+		255, 244, 182,
+		255, 244, 182,
+		255, 244, 182,
+		255, 244, 182,
+
+		245, 231, 122,
+		245, 231, 122,
+		245, 231, 122,
+		245, 231, 122,
+
+		245, 231, 122,
+		245, 231, 122,
+		245, 231, 122,
+		245, 231, 122,
+
+		245, 231, 122,
+		245, 231, 122,
+		245, 231, 122,
+		245, 231, 122,
+
+		245, 231, 122,
+		245, 231, 122,
+		245, 231, 122,
+		245, 231, 122
+	];
+
+	let indices = [
+		0, 1,  2,  2,  3, 0,
+		4, 5,  6,  6,  7, 4,
+		8, 9, 10, 10, 11, 8,
+		12, 13, 14, 14, 15, 12,
+		16, 17, 18, 18, 19, 16
+	];
+
+
+	//Load shader program
+	let program = createProgramFromSource(gl, vertShaderSourceData, fragShaderSourceData);
+
+	//Store attribute locations
+	let positionAttributeLocation = gl.getAttribLocation(program, 'a_position');
+	let colorAttributeLocation = gl.getAttribLocation(program, 'a_color');
+
+	//Store uniform locations
+	let projectionMatrixLocation = gl.getUniformLocation(program, 'u_projectionMatrix');
+	let viewMatrixLocation = gl.getUniformLocation(program, 'u_viewMatrix');
+	let modelMatrixLocation = gl.getUniformLocation(program, 'u_modelMatrix');
+
+
+	let vao = gl.createVertexArray();
+	gl.bindVertexArray(vao);
+
+	
 	let positionBuffer = gl.createBuffer();
 	gl.enableVertexAttribArray(positionAttributeLocation);
 	gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
@@ -98,23 +150,7 @@ function main(){
 	}
 
 
-	//Setup color data with vao
-	let colors = [
-		255, 255, 255,
-		255, 255, 255,
-		255, 255, 255,
-		255, 255, 255,
-
-		128, 128, 128,
-		128, 128, 128,
-		128, 128, 128,
-		128, 128, 128,
-
-		128, 128, 128,
-		128, 128, 128,
-		128, 128, 128,
-		128, 128, 128
-	];
+	
 	let colorBuffer = gl.createBuffer();
 	gl.enableVertexAttribArray(colorAttributeLocation);
 	gl.bindBuffer(gl.ARRAY_BUFFER, colorBuffer);
@@ -131,11 +167,7 @@ function main(){
 		gl.vertexAttribPointer(colorAttributeLocation, size, type, normalize, stride, offset);
 	}
 
-	let indices = [
-		0, 1,  2,  2,  3, 0,
-		4, 5,  6,  6,  7, 4,
-		8, 9, 10, 10, 11, 8
-	];
+	
 
 	let indicesBuffer = gl.createBuffer();
 	gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indicesBuffer);
@@ -144,18 +176,21 @@ function main(){
 
 
 	//Camera transform
-	let cameraTranslation = [0.0, 15.0, 15.0];
-	let cameraRotationDeg = [-45.0, 0.0, 0.0];
+	let cameraTranslation = [0.0, 20, 50];
+	let cameraRotationDeg = [-30.0, 0.0, 0.0];
 
 	//player paddle transform
 	let pTransform = new Transform();
-	pTransform.setPosition(0.0, 0.0, 12.0);
+	pTransform.setPosition(0.0, 0.0, 30.0);
 	pTransform.setScale(3.0, 1.0, 1.0);
 
 	//ai paddle transform
 	let aiTransform = new Transform();
-	aiTransform.setPosition(0.0, 0.0, -12.0);
+	aiTransform.setPosition(0.0, 0.0, -30.0);
 	aiTransform.setScale(3.0, 1.0, 1.0);
+	let aiDirX = 0;
+	let aiMaxSpeed = 25.0;
+	let aiSpeed = 0;
 
 	//ball transform
 	let bTransform = new Transform();
@@ -163,7 +198,7 @@ function main(){
 	let bDir = getNormalizedDirection(Math.random() * 2 - 1, 0, Math.random() * 2 - 1);
 	let bSpeed = 30;
 
-	
+
 
 	//Begin render loop
 	requestAnimationFrame(render);
@@ -174,7 +209,7 @@ function main(){
 		let deltaTime = now - then;
 
 		let levelWidth = 36;
-		let levelDepth = 32;
+		let levelDepth = 72;
 
 		//Input stuffs
 		if(Keyboard.getKey(Keyboard.KeyCode.LEFT)){
@@ -192,7 +227,37 @@ function main(){
 		}
 
 		//"Perfect AI"? Gross.
-		aiTransform.getPosition()[0] = bTransform.getPosition()[0];
+		//aiTransform.getPosition()[0] = bTransform.getPosition()[0];
+
+		if(bDir[2] < 0 && bTransform.getPosition()[2] < 20){
+
+			if(bTransform.getPosition()[0] > aiTransform.getPosition()[0] + 0.5){
+				aiDirX = 1;
+			}else if(bTransform.getPosition()[0] < aiTransform.getPosition()[0] - 0.5){
+				aiDirX = -1;
+			}
+		}else{
+			aiDirX = 0;
+		}
+
+		let dist = bTransform.getPosition()[0] - aiTransform.getPosition()[0];
+		dist = Math.abs(dist/2);
+		//console.log('dist: ' + dist);
+		if(dist > 1){
+			dist = 1;
+		}
+		
+		function lerp(a, b, t){
+			return a * (1 - t) + b * t;
+		}
+
+		aiSpeed = lerp(0, aiMaxSpeed, dist);
+		if(aiSpeed){
+
+		}
+		//console.log(aiSpeed);
+
+		aiTransform.getPosition()[0] += aiDirX * aiSpeed * deltaTime;
 
 		//Do all ball movement and collision testing
 		let pPos = pTransform.getPosition();
@@ -264,6 +329,12 @@ function main(){
 				if(bPos[2] < pPos[2]){ //if ball is already past the paddle dont make it bounce. (obv not perfect but works)
 					bPos[2] = pPos[2] - pHalfScale[2] - bHalfScale[2];
 					bDir[2] = -bDir[2];
+
+					if(bPos[0] > pPos[0]){
+						bDir[0] += 0.5;
+					}else if(bPos[0] < pPos[0]){
+						bDir[0] -= 0.5;
+					}
 				}
 			}
 		}
@@ -276,6 +347,12 @@ function main(){
 				if(bPos[2] > aiPos[2]){
 					bPos[2] = aiPos[2] + aiHalfScale[2] + bHalfScale[2];
 					bDir[2] = -bDir[2];
+
+					if(bPos[0] > aiPos[0]){
+						bDir[0] += 0.5;
+					}else if(bPos[0] < aiPos[0]){
+						bDir[0] -= 0.5;
+					}
 				}
 			}
 		}
@@ -291,7 +368,7 @@ function main(){
 
 		//Setup matrices. Should be created at init and updated during tick
 		//Setup projection matrix
-		const fov = DegToRad(80);
+		const fov = DegToRad(45);
 		const aspect = gl.canvas.width / gl.canvas.height;
 		const zNear = 0.1;
 		const zFar = 100.0;
@@ -326,7 +403,7 @@ function main(){
 			//Draw everything
 			let primitiveType = gl.TRIANGLES;
 			let offset = 0;
-			let count = 18;
+			let count = 30;
 			//gl.drawArrays(primitiveType, offset, count);
 			gl.drawElements(gl.TRIANGLES, count, gl.UNSIGNED_SHORT, 0);
 		}
@@ -345,7 +422,7 @@ function main(){
 			//Draw everything
 			let primitiveType = gl.TRIANGLES;
 			let offset = 0;
-			let count = 18;
+			let count = 30;
 			//gl.drawArrays(primitiveType, offset, count);
 			gl.drawElements(gl.TRIANGLES, count, gl.UNSIGNED_SHORT, 0);
 		}
@@ -365,7 +442,7 @@ function main(){
 			//Draw everything
 			let primitiveType = gl.TRIANGLES;
 			let offset = 0;
-			let count = 18;
+			let count = 30;
 			//gl.drawArrays(primitiveType, offset, count);
 			gl.drawElements(gl.TRIANGLES, count, gl.UNSIGNED_SHORT, 0);
 		}
