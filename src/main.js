@@ -182,12 +182,12 @@ function main(){
 	//player paddle transform
 	let pTransform = new Transform();
 	pTransform.setPosition(0.0, 0.0, 30.0);
-	pTransform.setScale(3.0, 1.0, 1.0);
+	pTransform.setScale(4.0, 1.0, 1.0);
 
 	//ai paddle transform
 	let aiTransform = new Transform();
 	aiTransform.setPosition(0.0, 0.0, -30.0);
-	aiTransform.setScale(3.0, 1.0, 1.0);
+	aiTransform.setScale(4.0, 1.0, 1.0);
 	let aiDirX = 0;
 	let aiMaxSpeed = 25.0;
 	let aiSpeed = 0;
@@ -197,6 +197,19 @@ function main(){
 
 	let bDir = getNormalizedDirection(Math.random() * 2 - 1, 0, Math.random() * 2 - 1);
 	let bSpeed = 30;
+
+	//UI stuff
+	let aiScoreElement = document.getElementById('ai_score_text');
+	let playerScoreElement = document.getElementById('player_score_text');
+
+	let aiScoreNode = document.createTextNode('0');
+	let playerScoreNode = document.createTextNode('0');
+
+	aiScoreElement.appendChild(aiScoreNode);
+	playerScoreElement.appendChild(playerScoreNode);
+
+	let aiScore = 0;
+	let playerScore = 0;
 
 
 
@@ -259,6 +272,25 @@ function main(){
 
 		aiTransform.getPosition()[0] += aiDirX * aiSpeed * deltaTime;
 
+
+		let aiPos = aiTransform.getPosition();
+		let aiScale = aiTransform.getScale();
+		let aiHalfScale = [aiScale[0]/2, aiScale[1]/2, aiScale[2]/2];
+		let aiTop = aiPos[2] - aiHalfScale[2];
+		let aiBottom = aiPos[2] + aiHalfScale[2];
+		let aiLeft = aiPos[0] - aiHalfScale[0];
+		let aiRight = aiPos[0] + aiHalfScale[0];
+
+		if(aiLeft < -(levelWidth/2.0)){
+			aiPos[0] = -(levelWidth/2.0) + aiHalfScale[0];
+		}else if(aiRight > (levelWidth/2.0)){
+			aiPos[0] = (levelWidth/2.0) - aiHalfScale[0];
+		}
+
+
+
+
+
 		//Do all ball movement and collision testing
 		let pPos = pTransform.getPosition();
 		let pScale = pTransform.getScale();
@@ -268,13 +300,7 @@ function main(){
 		let pLeft = pPos[0] - pHalfScale[0];
 		let pRight = pPos[0] + pHalfScale[0];
 
-		let aiPos = aiTransform.getPosition();
-		let aiScale = aiTransform.getScale();
-		let aiHalfScale = [aiScale[0]/2, aiScale[1]/2, aiScale[2]/2];
-		let aiTop = aiPos[2] - aiHalfScale[2];
-		let aiBottom = aiPos[2] + aiHalfScale[2];
-		let aiLeft = aiPos[0] - aiHalfScale[0];
-		let aiRight = aiPos[0] + aiHalfScale[0];
+		
 
 		let bPos = bTransform.getPosition();
 		let bScale = bTransform.getScale();
@@ -306,18 +332,26 @@ function main(){
 			console.log('Player wins!');
 
 			//update score
+			playerScore += 1;
+			playerScoreNode.nodeValue = playerScore;
 
 			//reset ball
-			resetBall(bPos);
+			bPos[0] = 0;
+			bPos[1] = 0;
+			bPos[2] = 0;
 			bDir = getNormalizedDirection(Math.random() * 2 - 1, 0, Math.random() * 2 - 1);
 		}else if(bBottom > (levelDepth/2.0)){
 			//display result message
 			console.log('AI wins.. I mean.. YAY!');
 
 			//update score
+			aiScore += 1;
+			aiScoreNode.nodeValue = aiScore;
 
 			//reset ball
-			resetBall(bPos);
+			bPos[0] = 0;
+			bPos[1] = 0;
+			bPos[2] = 0;
 			bDir = getNormalizedDirection(Math.random() * 2 - 1, 0, Math.random() * 2 - 1);
 		}
 
@@ -454,10 +488,12 @@ function main(){
 	}
 }
 
-function resetBall(bPos, bDir){
+function resetBall(bPos){
 	bPos[0] = 0.0;
 	bPos[1] = 0.0;
 	bPos[2] = 0.0;
+
+	return bPos;
 }
 
 
@@ -529,6 +565,7 @@ function createProgramFromSource(gl, vertShaderSource, fragShaderSource, validat
 	let fragShader = createShader(gl, gl.FRAGMENT_SHADER, fragShaderSource);
 	return createProgram(gl, vertShader, fragShader, validate);
 }
+
 
 
 //Shader sources
