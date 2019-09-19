@@ -198,6 +198,20 @@ function main(){
 	let bDir = getNormalizedDirection(Math.random() * 2 - 1, 0, Math.random() * 2 - 1);
 	let bSpeed = 30;
 
+
+	//bound bar stuff
+	let levelWidth = 36;
+	let levelDepth = 72;
+	let leftBoundTransform = new Transform();
+	leftBoundTransform.setScale(0.1, 0.1, levelDepth);
+	leftBoundTransform.setPosition(-(levelWidth/2) - 0.05, 0, 0);
+
+	let rightBoundTransform = new Transform();
+	rightBoundTransform.setScale(0.1, 0.1, levelDepth);
+	rightBoundTransform.setPosition((levelWidth/2) + 0.05, 0, 0);
+
+
+
 	//UI stuff
 	let aiScoreElement = document.getElementById('ai_score_text');
 	let playerScoreElement = document.getElementById('player_score_text');
@@ -211,6 +225,12 @@ function main(){
 	let aiScore = 0;
 	let playerScore = 0;
 
+	let boopSound = new Audio('../res/sounds/boop.wav');
+	boopSound.volume = 0.01;
+
+	let boopSound2 = new Audio('../res/sounds/boop2.wav');
+	boopSound2.volume = 0.02;
+
 
 
 	//Begin render loop
@@ -221,8 +241,7 @@ function main(){
 		now *= 0.001;
 		let deltaTime = now - then;
 
-		let levelWidth = 36;
-		let levelDepth = 72;
+		
 
 		//Input stuffs
 		if(Keyboard.getKey(Keyboard.KeyCode.LEFT)){
@@ -318,18 +337,66 @@ function main(){
 		if(bLeft < -(levelWidth/2.0)){
 			bPos[0] = -(levelWidth/2.0) + bHalfScale[0];
 			bDir[0] = -bDir[0];
+			boopSound2.play();
 		}else if(bRight > (levelWidth/2.0)){
 			bPos[0] = (levelWidth/2.0) - bHalfScale[0];
 			bDir[0] = -bDir[0];
+			boopSound2.play();
 		}
 
 		//Move ball "vertically"
 		bPos[2] += bDir[2] * bSpeed * deltaTime;		
 
+		
+
+		//Check ball collision with player paddle
+		if(bLeft < pRight && bRight > pLeft){
+			//console.log('in column above player paddle');
+			if(bBottom > pTop){
+				//console.log('collision');
+				
+				if(bPos[2] < pPos[2]){ //if ball is already past the paddle dont make it bounce. (obv not perfect but works)
+					bPos[2] = pPos[2] - pHalfScale[2] - bHalfScale[2];
+					bDir[2] = -bDir[2];
+
+					if(bPos[0] > pPos[0]){
+						bDir[0] += 0.5;
+					}else if(bPos[0] < pPos[0]){
+						bDir[0] -= 0.5;
+					}
+
+					boopSound.volume = 0.03;
+					boopSound.play();
+				}
+			}
+		}
+
+		//Check ball collision with ai paddle
+		if(bLeft < aiRight && bRight > aiLeft){
+			//console.log('in column below ai paddle');
+			if(bTop < aiBottom){
+				//console.log('collision');
+				
+				if(bPos[2] > aiPos[2]){
+					bPos[2] = aiPos[2] + aiHalfScale[2] + bHalfScale[2];
+					bDir[2] = -bDir[2];
+
+					if(bPos[0] > aiPos[0]){
+						bDir[0] += 0.5;
+					}else if(bPos[0] < aiPos[0]){
+						bDir[0] -= 0.5;
+					}
+
+					boopSound.volume = 0.01;
+					boopSound.play();
+				}
+			}
+		}
+
 		//check "vertical" bounds collision
-		if(bTop < -(levelDepth/2.0)){
+		if(bTop < -(levelDepth/2.0) + 2){
 			//display result message
-			console.log('Player wins!');
+			//console.log('Player wins!');
 
 			//update score
 			playerScore += 1;
@@ -340,9 +407,9 @@ function main(){
 			bPos[1] = 0;
 			bPos[2] = 0;
 			bDir = getNormalizedDirection(Math.random() * 2 - 1, 0, Math.random() * 2 - 1);
-		}else if(bBottom > (levelDepth/2.0)){
+		}else if(bBottom > (levelDepth/2.0) + 2){
 			//display result message
-			console.log('AI wins.. I mean.. YAY!');
+			//console.log('AI wins.. I mean.. YAY!');
 
 			//update score
 			aiScore += 1;
@@ -353,42 +420,6 @@ function main(){
 			bPos[1] = 0;
 			bPos[2] = 0;
 			bDir = getNormalizedDirection(Math.random() * 2 - 1, 0, Math.random() * 2 - 1);
-		}
-
-		//Check ball collision with player paddle
-		if(bLeft < pRight && bRight > pLeft){
-			//console.log('in column above player paddle');
-			if(bBottom > pTop){
-				//console.log('collision');
-				if(bPos[2] < pPos[2]){ //if ball is already past the paddle dont make it bounce. (obv not perfect but works)
-					bPos[2] = pPos[2] - pHalfScale[2] - bHalfScale[2];
-					bDir[2] = -bDir[2];
-
-					if(bPos[0] > pPos[0]){
-						bDir[0] += 0.5;
-					}else if(bPos[0] < pPos[0]){
-						bDir[0] -= 0.5;
-					}
-				}
-			}
-		}
-
-		//Check ball collision with ai paddle
-		if(bLeft < aiRight && bRight > aiLeft){
-			//console.log('in column below ai paddle');
-			if(bTop < aiBottom){
-				//console.log('collision');
-				if(bPos[2] > aiPos[2]){
-					bPos[2] = aiPos[2] + aiHalfScale[2] + bHalfScale[2];
-					bDir[2] = -bDir[2];
-
-					if(bPos[0] > aiPos[0]){
-						bDir[0] += 0.5;
-					}else if(bPos[0] < aiPos[0]){
-						bDir[0] -= 0.5;
-					}
-				}
-			}
 		}
 
 
@@ -481,6 +512,44 @@ function main(){
 			gl.drawElements(gl.TRIANGLES, count, gl.UNSIGNED_SHORT, 0);
 		}
 
+		{
+			//Setup left bound
+			let modelMatrix = glMatrix.mat4.create();
+			modelMatrix = glMatrix.mat4.translate(modelMatrix, modelMatrix, leftBoundTransform.getPosition());
+			modelMatrix = glMatrix.mat4.rotateX(modelMatrix, modelMatrix, DegToRad(leftBoundTransform.getRotation()[0]));
+			modelMatrix = glMatrix.mat4.rotateY(modelMatrix, modelMatrix, DegToRad(leftBoundTransform.getRotation()[1]));
+			modelMatrix = glMatrix.mat4.rotateZ(modelMatrix, modelMatrix, DegToRad(leftBoundTransform.getRotation()[2]));
+			modelMatrix = glMatrix.mat4.scale(modelMatrix, modelMatrix, leftBoundTransform.getScale());
+			gl.uniformMatrix4fv(modelMatrixLocation, false, modelMatrix);
+		
+		
+			//Draw everything
+			let primitiveType = gl.TRIANGLES;
+			let offset = 0;
+			let count = 30;
+			//gl.drawArrays(primitiveType, offset, count);
+			gl.drawElements(gl.TRIANGLES, count, gl.UNSIGNED_SHORT, 0);
+		}
+
+		{
+			//Setup right bound
+			let modelMatrix = glMatrix.mat4.create();
+			modelMatrix = glMatrix.mat4.translate(modelMatrix, modelMatrix, rightBoundTransform.getPosition());
+			modelMatrix = glMatrix.mat4.rotateX(modelMatrix, modelMatrix, DegToRad(rightBoundTransform.getRotation()[0]));
+			modelMatrix = glMatrix.mat4.rotateY(modelMatrix, modelMatrix, DegToRad(rightBoundTransform.getRotation()[1]));
+			modelMatrix = glMatrix.mat4.rotateZ(modelMatrix, modelMatrix, DegToRad(rightBoundTransform.getRotation()[2]));
+			modelMatrix = glMatrix.mat4.scale(modelMatrix, modelMatrix, rightBoundTransform.getScale());
+			gl.uniformMatrix4fv(modelMatrixLocation, false, modelMatrix);
+		
+		
+			//Draw everything
+			let primitiveType = gl.TRIANGLES;
+			let offset = 0;
+			let count = 30;
+			//gl.drawArrays(primitiveType, offset, count);
+			gl.drawElements(gl.TRIANGLES, count, gl.UNSIGNED_SHORT, 0);
+		}
+
 
 		then = now;
 
@@ -506,7 +575,7 @@ function getNormalizedDirection(x, y, z){
 	dir[1] = dir[1] / mag;
 	dir[2] = dir[2] / mag;
 
-	console.log(mag);
+	//console.log(mag);
 
 	return dir;
 }
